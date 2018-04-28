@@ -1,0 +1,5 @@
+project Fulcrum is
+
+   for Object_Dir use "obj";
+   for Main use ("test_fulcrum.adb");
+end Fulcrum;
