@@ -3,16 +3,10 @@ package body Fulcrum with SPARK_Mode is
    --  Straightforward implementation of Sum_Acc. The Loop_Invariants are just
    --  copies of the corresponding parts of the postcondition, using the loop
    --  index where appropriate.
-   --  A technical detail is the early return in the case of S'Length = 1,
-   --  which avoids an overflow if array bounds are very close to maximal
-   --  values.
    function Sum_Acc (S : Seq) return Sum_Type is
       Result : Sum_Type (S'Range) := (others => 0);
    begin
       Result (S'First) := S (S'First);
-      if S'Length = 1 then
-         return Result;
-      end if;
       for Index in S'First + 1 .. S'Last loop
          pragma Loop_Invariant
            (Result (S'First) = S (S'First) and then
@@ -32,9 +26,6 @@ package body Fulcrum with SPARK_Mode is
       Result : Sum_Type (S'Range) := (others => 0);
    begin
       Result (S'Last) := 0;
-      if S'Length = 1 then
-         return Result;
-      end if;
       for Index in reverse S'First .. S'Last - 1 loop
          pragma Loop_Invariant
            (Result (S'Last) = 0 and then

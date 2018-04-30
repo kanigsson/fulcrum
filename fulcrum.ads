@@ -77,7 +77,7 @@ package Fulcrum with SPARK_Mode is
    --  [Sum_Acc_Rev] takes a sequence and returns a sequence of sums such that
    --  each cell contains the sum of values up to (and excluding) that cell,
    --  starting from *the end* of the array.
-   --  For example, Sum_Acc_Rev ((1,2,3)) = (4,3,0)
+   --  For example, Sum_Acc_Rev ((1,2,3)) = (5,3,0)
    --  The specification of [Sum_Acc_Rev] is of course very similar to
    --  [Sum_Acc], except that:
    --    - the last cell of the result always contains 0
