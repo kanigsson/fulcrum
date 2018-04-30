@@ -1,5 +1,11 @@
 package body Fulcrum with SPARK_Mode is
 
+   --  Straightforward implementation of Sum_Acc. The Loop_Invariants are just
+   --  copies of the corresponding parts of the postcondition, using the loop
+   --  index where appropriate.
+   --  A technical detail is the early return in the case of S'Length = 1,
+   --  which avoids an overflow if array bounds are very close to maximal
+   --  values.
    function Sum_Acc (S : Seq) return Sum_Type is
       Result : Sum_Type (S'Range) := (others => 0);
    begin
@@ -20,6 +26,8 @@ package body Fulcrum with SPARK_Mode is
       return Result;
    end Sum_Acc;
 
+   --  A straightforward adaptation of [Sum_Acc] for the reverse case. Notice
+   --  the loop traversing the loop indices in reverse order.
    function Sum_Acc_Rev (S : Seq) return Sum_Type is
       Result : Sum_Type (S'Range) := (others => 0);
    begin
@@ -40,6 +48,11 @@ package body Fulcrum with SPARK_Mode is
       return Result;
    end Sum_Acc_Rev;
 
+   --  This is a helper function to compute the "right sum" of the array, that
+   --  is, the sum of the array values without the first value. This function
+   --  must run in O(1) space, so we don't use the Sum_Acc_Rev function (which
+   --  is marked Ghost, so cannot be used in code anyway), but do another loop
+   --  here. The postcondition, however, refers to Sum_Acc_Rev.
    function Sum (S : Seq) return Integer
       with Pre => S'Length > 0,
       Post =>
@@ -55,23 +68,53 @@ package body Fulcrum with SPARK_Mode is
       return Result;
    end Sum;
 
+  --  Finally the implementation of Find_Fulcrum. It uses two variables
+  --  Left_Sum and Right_Sum which contain the current values for those
+  --  partial sums, as well as the variable Max for the current maximal
+  --  difference between the sum, and the variable Index for the
+  --  corresponding index.
   function Find_Fulcrum (S : Seq) return Nat is
+     --  We initialize those four local variables, basically setting the
+     --  current best index at the first cell of the array.
      Index : Nat := S'First;
+     --  The first partial sum from the left is just the first cell of the
+     --  array.
      Left_Sum : Integer := S (S'First);
+     --  The first partial sum from the right uses the Sum function defined
+     --  above; it corresponds to the sum of the entire array, excluding the
+     --  first value. This is O(n) time, O(1) space.
      Right_Sum : Integer := Sum (S);
+     --  The current best difference is just the first such difference.
      Max : Integer := Left_Sum - Right_Sum;
   begin
+     --  The code is now very straightforward. We iterate over the remainder
+     --  of the array, adding the current value to the Left_Sum, and removing
+     --  it from Right_Sum. We then compare their difference with the current
+     --  best value Max, and update Max and Index if we found a new best
+     --  value. This is clearly O(n) time. We don't do any calls or creation
+     --  of new variables, so we stay at O(1) space.
      for I in S'First + 1 .. S'Last loop
+        --  The loop invariants clearly express the intent of the four
+        --  variables
         pragma Loop_Invariant
+          --  we define what Left_Sum and Right_Sum are supposed to mean, that
+          --  is, the partial sums as computed by Sum_Acc and Sum_Acc_Rev.
           (Left_Sum = Sum_Acc (S) (I - 1) and then
-           Index in S'Range and then
            Right_Sum = Sum_Acc_Rev (S) (I - 1) and then
+          --  need to state that the Index variable is in range to be able to
+          --  prove that the array accesses are within bounds
+           Index in S'Range and then
+          --  The link between Max and Index: Max contains the difference
+          --  between the partial sums at Index.
            Max = Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index) and then
+         --   and this is the best such difference up to now
           (for all K in S'First .. I - 1 =>
                Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K) <=
                Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index)));
         Left_Sum := Left_Sum + S (I);
         Right_Sum := Right_Sum - S (I);
+        --  the remaining three assertions are to help provers and just
+        --  restate things that are already known.
         pragma Assert (Left_Sum = Sum_Acc (S) (I));
         pragma Assert (Right_Sum = Sum_Acc_Rev (S) (I));
         if Left_Sum - Right_Sum > Max then
