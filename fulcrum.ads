@@ -99,14 +99,14 @@ package Fulcrum with SPARK_Mode is
 
 
   --  Now finally the [Find_Fulcrum] function. It simply states that no
-  --  difference between the two sums is bigger than the one for the result.
+  --  difference between the two sums is smaller than the one for the result.
   --  We use the arrays of partial sums to express that.
   function Find_Fulcrum (S : Seq) return Nat
   with Pre => S'Length > 0,
        Post =>
        (Find_Fulcrum'Result in S'Range and then
           (for all I in S'Range =>
-               Sum_Acc (S) (I) - Sum_Acc_Rev (S) (I) <=
-               Sum_Acc (S) (Find_Fulcrum'Result) - Sum_Acc_Rev (S) (Find_Fulcrum'Result)));
+               abs (Sum_Acc (S) (I) - Sum_Acc_Rev (S) (I)) >=
+               abs (Sum_Acc (S) (Find_Fulcrum'Result) - Sum_Acc_Rev (S) (Find_Fulcrum'Result))));
 
 end Fulcrum;

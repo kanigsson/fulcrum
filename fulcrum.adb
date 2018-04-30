@@ -61,7 +61,7 @@ package body Fulcrum with SPARK_Mode is
 
   --  Finally the implementation of Find_Fulcrum. It uses two variables
   --  Left_Sum and Right_Sum which contain the current values for those
-  --  partial sums, as well as the variable Max for the current maximal
+  --  partial sums, as well as the variable Min for the current minimal
   --  difference between the sum, and the variable Index for the
   --  corresponding index.
   function Find_Fulcrum (S : Seq) return Nat is
@@ -76,12 +76,12 @@ package body Fulcrum with SPARK_Mode is
      --  first value. This is O(n) time, O(1) space.
      Right_Sum : Integer := Sum (S);
      --  The current best difference is just the first such difference.
-     Max : Integer := Left_Sum - Right_Sum;
+     Min : Integer := abs (Left_Sum - Right_Sum);
   begin
      --  The code is now very straightforward. We iterate over the remainder
      --  of the array, adding the current value to the Left_Sum, and removing
      --  it from Right_Sum. We then compare their difference with the current
-     --  best value Max, and update Max and Index if we found a new best
+     --  best value Min, and update Min and Index if we found a new best
      --  value. This is clearly O(n) time. We don't do any calls or creation
      --  of new variables, so we stay at O(1) space.
      for I in S'First + 1 .. S'Last loop
@@ -95,27 +95,27 @@ package body Fulcrum with SPARK_Mode is
           --  need to state that the Index variable is in range to be able to
           --  prove that the array accesses are within bounds
            Index in S'Range and then
-          --  The link between Max and Index: Max contains the difference
-          --  between the partial sums at Index.
-           Max = Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index) and then
+          --  The link between Min and Index: Min contains the absolute
+          --  difference between the partial sums at Index.
+           Min = abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index)) and then
          --   and this is the best such difference up to now
           (for all K in S'First .. I - 1 =>
-               Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K) <=
-               Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index)));
+               abs (Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K)) >=
+               abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index))));
         Left_Sum := Left_Sum + S (I);
         Right_Sum := Right_Sum - S (I);
         --  the remaining three assertions are to help provers and just
         --  restate things that are already known.
         pragma Assert (Left_Sum = Sum_Acc (S) (I));
         pragma Assert (Right_Sum = Sum_Acc_Rev (S) (I));
-        if Left_Sum - Right_Sum > Max then
-           Max := Left_Sum - Right_Sum;
+        if abs (Left_Sum - Right_Sum) < Min then
+           Min := abs (Left_Sum - Right_Sum);
            Index := I;
         end if;
         pragma Assert (
           (for all K in S'First .. I =>
-               Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K) <=
-               Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index)));
+               abs (Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K)) >=
+               abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index))));
      end loop;
      return Index;
   end Find_Fulcrum;
