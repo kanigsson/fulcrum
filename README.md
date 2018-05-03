@@ -8,7 +8,7 @@ follows:
 
 ```bash
 
-$ gnatprove -P fulcrum --report=all --prover=z3,cvc4
+$ gnatprove -P fulcrum --report=all --level=2
 
 ```
 

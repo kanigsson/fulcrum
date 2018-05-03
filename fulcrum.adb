@@ -104,18 +104,10 @@ package body Fulcrum with SPARK_Mode is
                abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index))));
         Left_Sum := Left_Sum + S (I);
         Right_Sum := Right_Sum - S (I);
-        --  the remaining three assertions are to help provers and just
-        --  restate things that are already known.
-        pragma Assert (Left_Sum = Sum_Acc (S) (I));
-        pragma Assert (Right_Sum = Sum_Acc_Rev (S) (I));
         if abs (Left_Sum - Right_Sum) < Min then
            Min := abs (Left_Sum - Right_Sum);
            Index := I;
         end if;
-        pragma Assert (
-          (for all K in S'First .. I =>
-               abs (Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K)) >=
-               abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index))));
      end loop;
      return Index;
   end Find_Fulcrum;
