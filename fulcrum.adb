@@ -3,8 +3,8 @@ package body Fulcrum with SPARK_Mode is
    --  Straightforward implementation of Sum_Acc. The Loop_Invariants are just
    --  copies of the corresponding parts of the postcondition, using the loop
    --  index where appropriate.
-   function Sum_Acc (S : Seq) return Sum_Type is
-      Result : Sum_Type (S'Range) := (others => 0);
+   function Sum_Acc (S : Seq) return Partial_Sums is
+      Result : Partial_Sums (S'Range) := (others => 0);
    begin
       Result (S'First) := S (S'First);
       for Index in S'First + 1 .. S'Last loop
@@ -22,8 +22,8 @@ package body Fulcrum with SPARK_Mode is
 
    --  A straightforward adaptation of [Sum_Acc] for the reverse case. Notice
    --  the loop traversing the loop indices in reverse order.
-   function Sum_Acc_Rev (S : Seq) return Sum_Type is
-      Result : Sum_Type (S'Range) := (others => 0);
+   function Sum_Acc_Rev (S : Seq) return Partial_Sums is
+      Result : Partial_Sums (S'Range) := (others => 0);
    begin
       Result (S'Last) := 0;
       for Index in reverse S'First .. S'Last - 1 loop

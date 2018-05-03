@@ -34,8 +34,8 @@ package Fulcrum with SPARK_Mode is
    --  [Seq] is the type of arrays that can be summed. It uses [Nat] as index
    --  type and [Int] as value type.
 
-   type Sum_Type is array (Nat range <>) of Integer;
-   --  [Sum_Type] will be used for arrays that contain partial sums. We will
+   type Partial_Sums is array (Nat range <>) of Integer;
+   --  [Partial_Sums] will be used for arrays that contain partial sums. We will
    --  see its use with the next function.
 
    --  A natural way to specify the sum of an array would be a recursive
@@ -49,7 +49,7 @@ package Fulcrum with SPARK_Mode is
    --  [Sum_Acc] takes a sequence and returns a sequence of sums such that
    --  each cell contains the sum of values up to (and including) that cell.
    --  For example, Sum_Acc ( (1,2,3)) = (1,3,6)
-   function Sum_Acc (S : Seq) return Sum_Type
+   function Sum_Acc (S : Seq) return Partial_Sums
       --  The function is marked "Ghost", which means it can only be used in
       --  specifications, not in code. This makes sure we don't use this
       --  costly function in the regular code.
@@ -85,7 +85,7 @@ package Fulcrum with SPARK_Mode is
    --      of the result array and the *following* cell of the input array
    --    - to bound the sum values (to prove absence of overflow), we need to
    --      count summed values from the end of the array.
-   function Sum_Acc_Rev (S : Seq) return Sum_Type
+   function Sum_Acc_Rev (S : Seq) return Partial_Sums
      with Ghost,
      Pre => S'Length > 0,
      Post =>
