@@ -1,0 +1,20 @@
+language: generic
+
+env:
+  global:
+    - GNAT_COMMUNITY_PATH=/opt/gnat-community-2018
+
+cache:
+  directories:
+    - $GNAT_COMMUNITY_PATH
+
+install:
+  # check if GNAT Community is already in the cache, else install it
+  - test -f $GNAT_COMMUNITY_PATH/bin/gnatprove || ./scripts/install-dependencies.sh
+  # export PATH
+  - export PATH=/opt/gnat-community-2018/bin:$PATH
+
+script:
+  - gprbuild -p -P fulcrum.gpr
+  - ./obj/test_fulcrum
+  - gnatprove -P fulcrum.gpr --level=2
