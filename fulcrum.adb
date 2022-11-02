@@ -21,9 +21,10 @@ package body Fulcrum with SPARK_Mode is
      --  The first partial sum from the left is just the first cell of the
      --  array.
      Left_Sum : Integer := S (S'First);
-     --  The first partial sum from the right uses the Sum function defined
-     --  above; it corresponds to the sum of the entire array, excluding the
-     --  first value. This is O(n) time, O(1) space.
+      --  The first partial sum from the right uses the Sum function. We need
+      --  to exclude the first value so that Right_Sum corresponds to the sum
+      --  excluding the first index.
+      --  This is O(n) time, O(1) space.
       Right_Sum : Integer :=
         (if S'Length > 1 then Sum (S, S'First + 1, S'Last) else 0);
      --  The current best difference is just the first such difference.
@@ -39,8 +40,7 @@ package body Fulcrum with SPARK_Mode is
         --  The loop invariants clearly express the intent of the four
         --  variables
         pragma Loop_Invariant
-          --  we define what Left_Sum and Right_Sum are supposed to mean, that
-          --  is, the partial sums as computed by Sum_Acc and Sum_Acc_Rev.
+          --  We define what Left_Sum and Right_Sum are supposed to mean.
           (Left_Sum = Sum (S, S'First, I - 1) and then
            Right_Sum = Sum (S, I, S'Last) and then
           --  need to state that the Index variable is in range to be able to
@@ -50,8 +50,7 @@ package body Fulcrum with SPARK_Mode is
           --  difference between the partial sums at Index.
            Min = Diff_Sum (S, Index) and then
          --   and this is the best such difference up to now
-          (for all K in S'First .. I - 1 =>
-               Diff_Sum (S, K) >= Min));
+          (for all K in S'First .. I - 1 => Diff_Sum (S, K) >= Min));
         Left_Sum := Left_Sum + S (I);
         Right_Sum := Right_Sum - S (I);
         if abs (Left_Sum - Right_Sum) < Min then
