@@ -34,69 +34,26 @@ package Fulcrum with SPARK_Mode is
    --  [Seq] is the type of arrays that can be summed. It uses [Nat] as index
    --  type and [Int] as value type.
 
-   type Partial_Sums is array (Nat range <>) of Integer;
-   --  [Partial_Sums] will be used for arrays that contain partial sums. We will
-   --  see its use with the next function.
+   function Sum (S : Seq; A, B : Nat) return Integer
+   is (if A = B then S (A) else Sum (S, A, B - 1) + S (B))
+     with Pre => A in S'Range and B in S'Range and A <= B,
+          Post => abs (Sum'Result) <= Int'Last * (B - A + 1),
+     Subprogram_Variant => (Decreases => B);
 
-   --  A natural way to specify the sum of an array would be a recursive
-   --  function. Such a function can be defined in SPARK, but SPARK proofs
-   --  cannot use such a function for technical reasons. As a workaround, we
-   --  now define two functions that return arrays of partial sums. The
-   --  specification of Fulcrum nevertheless is quite nice.
-   --  We could define more natural sum functions (e.g. Sum_Up_To (S, I) and
-   --  Sum_From (S, I)), but we didn't find it necessary.
+   --  The sum function is defined by adding the last element to the recursive
+   --  call. We prove that adding the first element instead would give the same
+   --  result.
+   procedure Lemma_Left_Incr (S : Seq; A, B : Nat)
+     with Pre  => A in S'Range and B in S'Range and A < B,
+     Post => Sum (S, A, B) = Sum (S, A + 1, B) + S(A),
+     Subprogram_Variant => (Decreases => B),
+     Annotate => (GNATprove, Automatic_Instantiation),
+     Ghost;
 
-   --  [Sum_Acc] takes a sequence and returns a sequence of sums such that
-   --  each cell contains the sum of values up to (and including) that cell.
-   --  For example, Sum_Acc ( (1,2,3)) = (1,3,6)
-   function Sum_Acc (S : Seq) return Partial_Sums
-      --  The function is marked "Ghost", which means it can only be used in
-      --  specifications, not in code. This makes sure we don't use this
-      --  costly function in the regular code.
-     with Ghost,
-     --  The Fulcrum problem doesn't really make sense with empty arrays, so
-     --  we exclude this case for all functions in this example.
-     Pre => S'Length > 0,
-     Post =>
-     --  the result has the same length and bounds as the input
-     (Sum_Acc'Result'Length = S'Length and then
-      Sum_Acc'Result'First = S'First and then
-     --  (The absolute value of) Each partial sum can be bound by the number
-     -- of elements it sums multiplied by the largest allowed value.
-      (for all I in S'First .. S'Last =>
-            abs (Sum_Acc'Result (I)) <= I * Int'Last) and then
-      --  Now finally the conditions for the contents of the result. The first
-      --  cell is the same as the first cell of the argument ...
-      Sum_Acc'Result (S'First) = S (S'First) and then
-      --  ..  and the other cells contain the current cell added to the
-      --  previous cell.
-      (for all I in S'First + 1 .. S'Last =>
-            Sum_Acc'Result (I) = Sum_Acc'Result (I - 1) + S (I)));
-
-
-   --  [Sum_Acc_Rev] takes a sequence and returns a sequence of sums such that
-   --  each cell contains the sum of values up to (and excluding) that cell,
-   --  starting from *the end* of the array.
-   --  For example, Sum_Acc_Rev ((1,2,3)) = (5,3,0)
-   --  The specification of [Sum_Acc_Rev] is of course very similar to
-   --  [Sum_Acc], except that:
-   --    - the last cell of the result always contains 0
-   --    - the content of a cell is defined by the sum of the following cell
-   --      of the result array and the *following* cell of the input array
-   --    - to bound the sum values (to prove absence of overflow), we need to
-   --      count summed values from the end of the array.
-   function Sum_Acc_Rev (S : Seq) return Partial_Sums
-     with Ghost,
-     Pre => S'Length > 0,
-     Post =>
-     (Sum_Acc_Rev'Result'Length = S'Length and then
-      Sum_Acc_Rev'Result'First = S'First and then
-      (for all I in S'First .. S'Last =>
-         abs (Sum_Acc_Rev'Result (I)) <= (S'Last - I + 1) * Int'Last) and then
-      Sum_Acc_Rev'Result (S'Last) = 0 and then
-      (for all I in S'First .. S'Last - 1 =>
-            Sum_Acc_Rev'Result (I) = Sum_Acc_Rev'Result (I + 1) + S (I + 1)));
-
+   function Diff_Sum (S : Seq; I : Nat) return Integer
+   is (if I = S'Last then abs (Sum (S, S'First, S'Last)) else
+          abs (Sum (S, S'First, I) - Sum (S, I + 1, S'Last)))
+     with Pre => I in S'Range;
 
   --  Now finally the [Find_Fulcrum] function. It simply states that no
   --  difference between the two sums is smaller than the one for the result.
@@ -106,7 +63,6 @@ package Fulcrum with SPARK_Mode is
        Post =>
        (Find_Fulcrum'Result in S'Range and then
           (for all I in S'Range =>
-               abs (Sum_Acc (S) (I) - Sum_Acc_Rev (S) (I)) >=
-               abs (Sum_Acc (S) (Find_Fulcrum'Result) - Sum_Acc_Rev (S) (Find_Fulcrum'Result))));
+               Diff_Sum (S, I)  >= Diff_Sum (S, Find_Fulcrum'Result)));
 
 end Fulcrum;

@@ -1,63 +1,13 @@
 package body Fulcrum with SPARK_Mode is
 
-   --  Straightforward implementation of Sum_Acc. The Loop_Invariants are just
-   --  copies of the corresponding parts of the postcondition, using the loop
-   --  index where appropriate.
-   function Sum_Acc (S : Seq) return Partial_Sums is
-      Result : Partial_Sums (S'Range) := (others => 0);
-   begin
-      Result (S'First) := S (S'First);
-      for Index in S'First + 1 .. S'Last loop
-         pragma Loop_Invariant
-           (Result (S'First) = S (S'First) and then
-                (for all I in S'First + 1 .. Index - 1 =>
-                     Result (I) = Result (I - 1) + S (I)));
-         pragma Loop_Invariant (
-            (for all I in S'First .. Index - 1 =>
-               abs (Result (I)) <= I * Int'Last));
-         Result (Index) := Result (Index - 1) + S (Index);
-      end loop;
-      return Result;
-   end Sum_Acc;
 
-   --  A straightforward adaptation of [Sum_Acc] for the reverse case. Notice
-   --  the loop traversing the loop indices in reverse order.
-   function Sum_Acc_Rev (S : Seq) return Partial_Sums is
-      Result : Partial_Sums (S'Range) := (others => 0);
+   procedure Lemma_Left_Incr (S : Seq; A, B : Nat) is
    begin
-      Result (S'Last) := 0;
-      for Index in reverse S'First .. S'Last - 1 loop
-         pragma Loop_Invariant
-           (Result (S'Last) = 0 and then
-                (for all I in Index + 1 .. S'Last - 1 =>
-                     Result (I) = Result (I + 1) + S (I + 1)));
-         pragma Loop_Invariant (
-            (for all I in Index + 1 .. S'Last =>
-               abs (Result (I)) <= (S'Last - I + 1) * Int'Last));
-         Result (Index) := Result (Index + 1) + S (Index + 1);
-      end loop;
-      return Result;
-   end Sum_Acc_Rev;
+      if A + 1 < B then
+         Lemma_Left_Incr (S, A, B - 1);
+      end if;
+   end Lemma_Left_Incr;
 
-   --  This is a helper function to compute the "right sum" of the array, that
-   --  is, the sum of the array values without the first value. This function
-   --  must run in O(1) space, so we don't use the Sum_Acc_Rev function (which
-   --  is marked Ghost, so cannot be used in code anyway), but do another loop
-   --  here. The postcondition, however, refers to Sum_Acc_Rev.
-   function Sum (S : Seq) return Integer
-      with Pre => S'Length > 0,
-      Post =>
-        Sum'Result = Sum_Acc_Rev (S) (S'First);
-
-   function Sum (S : Seq) return Integer is
-      Result : Integer := 0;
-   begin
-      for Index in reverse S'First + 1 .. S'Last loop
-         pragma Loop_Invariant (Result = Sum_Acc_Rev (S) (Index));
-         Result := Result + S (Index);
-      end loop;
-      return Result;
-   end Sum;
 
   --  Finally the implementation of Find_Fulcrum. It uses two variables
   --  Left_Sum and Right_Sum which contain the current values for those
@@ -74,7 +24,8 @@ package body Fulcrum with SPARK_Mode is
      --  The first partial sum from the right uses the Sum function defined
      --  above; it corresponds to the sum of the entire array, excluding the
      --  first value. This is O(n) time, O(1) space.
-     Right_Sum : Integer := Sum (S);
+      Right_Sum : Integer :=
+        (if S'Length > 1 then Sum (S, S'First + 1, S'Last) else 0);
      --  The current best difference is just the first such difference.
      Min : Integer := abs (Left_Sum - Right_Sum);
   begin
@@ -90,18 +41,17 @@ package body Fulcrum with SPARK_Mode is
         pragma Loop_Invariant
           --  we define what Left_Sum and Right_Sum are supposed to mean, that
           --  is, the partial sums as computed by Sum_Acc and Sum_Acc_Rev.
-          (Left_Sum = Sum_Acc (S) (I - 1) and then
-           Right_Sum = Sum_Acc_Rev (S) (I - 1) and then
+          (Left_Sum = Sum (S, S'First, I - 1) and then
+           Right_Sum = Sum (S, I, S'Last) and then
           --  need to state that the Index variable is in range to be able to
           --  prove that the array accesses are within bounds
            Index in S'Range and then
           --  The link between Min and Index: Min contains the absolute
           --  difference between the partial sums at Index.
-           Min = abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index)) and then
+           Min = Diff_Sum (S, Index) and then
          --   and this is the best such difference up to now
           (for all K in S'First .. I - 1 =>
-               abs (Sum_Acc (S) (K) - Sum_Acc_Rev (S) (K)) >=
-               abs (Sum_Acc (S) (Index) - Sum_Acc_Rev (S) (Index))));
+               Diff_Sum (S, K) >= Min));
         Left_Sum := Left_Sum + S (I);
         Right_Sum := Right_Sum - S (I);
         if abs (Left_Sum - Right_Sum) < Min then
