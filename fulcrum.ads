@@ -52,6 +52,9 @@ package Fulcrum with SPARK_Mode is
      with Pre => A in S'Range and B in S'Range and A <= B,
      Subprogram_Variant => (Decreases => B);
 
+   --  Because Safe_Sum is defined by recursion over the second argument, some
+   --  help for provers is needed for the first argument. Here we prove that the
+   --  sum increases if we add one element to the left.
    procedure Lemma_Safe_Sum_Left_Incr (S : Seq; A, B : Natural)
      with Pre                =>
        A in S'Range and then B in S'Range
@@ -62,6 +65,10 @@ package Fulcrum with SPARK_Mode is
           Annotate           => (GNATprove, Automatic_Instantiation),
           Subprogram_Variant => (Decreases => B),
           Ghost;
+
+   --  The next two lemmas prove that, if Safe_Sum returns a value for some
+   --  slice, then Safe_Sum also return a value for subslices. We prove this
+   --  separately for changes in the lower and upper index.
 
    procedure Lemma_Safe_Sum_Slice_Right (S : Seq; A, B, D : Natural)
      with Pre => A in S'Range and then B in S'Range
@@ -92,12 +99,14 @@ package Fulcrum with SPARK_Mode is
           Post               => Sum'Result = Safe_Sum (S, A, B).Value,
           Subprogram_Variant => (Decreases => B);
 
+   --  We already proved a similar lemma for Safe_Sum.
    procedure Lemma_Left_Incr (S : Seq; A, B : Natural)
-     with Pre  => A in S'Range and then B in S'Range and then A < B and then Safe_Sum (S, A, B).Kind = O_Some,
-     Post => Sum (S, A, B) = Sum (S, A + 1, B) + S(A),
-     Subprogram_Variant => (Decreases => B),
-     Annotate => (GNATprove, Automatic_Instantiation),
-     Ghost;
+     with Pre  => A in S'Range and then B in S'Range
+     and then A < B and then Safe_Sum (S, A, B).Kind = O_Some,
+          Post => Sum (S, A, B) = Sum (S, A + 1, B) + S(A),
+          Subprogram_Variant => (Decreases => B),
+          Annotate => (GNATprove, Automatic_Instantiation),
+          Ghost;
 
    function Diff_Sum (S : Seq; I : Natural) return Natural
    is (if I = S'Last then Sum (S, S'First, S'Last) else
