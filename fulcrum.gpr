@@ -4,6 +4,8 @@ project Fulcrum is
    for Main use ("test_fulcrum.adb");
 
    package Compiler is
-      for Switches ("Ada") use ("-gnata", "-gnat2022");
+      for Switches ("ada") use ("-gnat2022");
    end Compiler;
+
 end Fulcrum;
+
